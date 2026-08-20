@@ -7,7 +7,8 @@ class DigitalWallet:
         self.balance = float(balance)
         self.daily_limit = float(daily_limit)
         
-        self.transactions = []         # Stores history tuples: (type, amount, timestamp, status)
+        # Format: (type, amount, timestamp, status)
+        self.transactions = []         
         self.failed_pin_attempts = 0
         self.is_locked = False
 
@@ -26,16 +27,14 @@ class DigitalWallet:
     def check_fraud(self, amount):
         now = time.time()
         
-        # Rule 1: More than 5 transactions in 10 minutes (600 seconds)
-        recent_txs = [tx for tx in self.transactions if now - tx[2] < 600 and tx[3] == "Success"]
+        # Bug Fix: tx is a tuple, timestamp is at index 2, status is at index 3
+        recent_txs = [tx for tx in self.transactions if (now - tx[2]) < 600 and tx[3] == "Success"]
         if len(recent_txs) >= 5:
             return "Suspicious: High transaction frequency"
             
-        # Rule 2: Large transaction or unusual transaction amount
         if amount > self.daily_limit:
             return "Suspicious: Transaction exceeds safe threshold"
             
-        # Rule 3: Multiple failed PIN attempts
         if self.failed_pin_attempts > 0:
             return "Suspicious: Previous failed PIN attempts recorded"
             
@@ -62,9 +61,9 @@ class DigitalWallet:
         if amount > self.balance:
             return "Error: Insufficient balance"
             
-        # Daily limit tracking
+        # Bug Fix: Correctly sum the amount from index 1 of matching transaction tuples
         now = time.time()
-        today_total = sum(tx[1] for tx in self.transactions if now - tx[2] < 86400 and tx[0] in ["Withdraw", "Transfer"] and tx[3] == "Success")
+        today_total = sum(tx[1] for tx in self.transactions if (now - tx[2]) < 86400 and tx[0] in ["Withdraw", "Transfer Out"] and tx[3] == "Success")
         if today_total + amount > self.daily_limit:
             return "Error: Daily transaction limit exceeded"
 
@@ -98,3 +97,4 @@ class DigitalWallet:
 
     def get_history(self):
         return self.transactions
+
